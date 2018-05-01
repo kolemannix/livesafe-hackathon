@@ -17,7 +17,7 @@ object Hm {
   trait HasEncryptionKey {
     val encryptionKey: Option[EncryptionKeyId]
   }
-  class AsyncKmsSingleIdEncryptable[V[S <: State] <: HasEncryptionKey] extends Encryptable[V, AsyncKmsService, Future] {
+  trait AsyncKmsSingleIdEncryptable[V[S <: State] <: HasEncryptionKey] extends Encryptable[V, AsyncKmsService, Future] {
     def encryptWithCipher[S <: View](v: V[S], cipher: CipherKey): V[Store]
     def encrypt[S <: View](v: V[S], service: AsyncKmsService): Future[V[Store]] = {
       v.encryptionKey match {
@@ -25,17 +25,30 @@ object Hm {
           service.getKey(encryptionKeyId).map { cipher =>
             encryptWithCipher(v, cipher)
           }(service.executor)
-        case None => Future.successful(v)
+        case None =>
+          // TODO: Figure out how to properly convert this to a V[Store]
+          Future.successful(v.asInstanceOf[V[Store]])
       }
 
     }
+    def decryptWithCipher[S <: Store](v: V[S], cipher: CipherKey): V[View]
     def decrypt[S <: Store](v: V[S], service: AsyncKmsService): Future[V[View]] = {
-
+      v.encryptionKey match {
+        case Some(encryptionKeyId) =>
+          service.getKey(encryptionKeyId).map { cipher =>
+            decryptWithCipher(v, cipher)
+          }(service.executor)
+        case None =>
+          // TODO: Figure out how to properly convert this to a V[View]
+          Future.successful(v.asInstanceOf[V[View]])
+      }
     }
   }
 }
 
 object ShapeEntity {
+  type EncryptedShapeEntity = ShapeEntity[Store]
+  type DecryptedShapeEntity = ShapeEntity[View]
   implicit val encryptable: Encryptable[ShapeEntity, AsyncKmsService, Future] = new Encryptable[ShapeEntity, AsyncKmsService, Future] {
     def encrypt[S <: View](shape: ShapeEntity[S], service: AsyncKmsService): Future[ShapeEntity[Store]] = {
       shape.encryptionKey match {
@@ -89,16 +102,6 @@ object ShapeRepository {
     def getShapesWithSizes(sizes: Set[String]) = {
       shapes.filter(_.size inSet sizes).result
     }
-
-    def getShapesWithSizes(sizes: Set[String]) = {
-      sql"""
-            ASDFASDFASDFASDFASDF
-            SELECT BLAH DECRYPT
-        """
-        .as[ShapeEntity[View]]
-    }
-
-
 
   }
 
