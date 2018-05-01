@@ -1,0 +1,3 @@
+all {file:/home/knix/ls-hack/}ls-hack/products {file:/home/knix/ls-hack/}ls-hack/test:products
+;reload; set _root_.org.jetbrains.sbt.StructureKeys.sbtStructureOptions in Global := "download resolveClassifiers" ;*/*:dumpStructureTo /tmp/sbt-structure.xml; session clear-all
+runMain interview.OperatingCost
